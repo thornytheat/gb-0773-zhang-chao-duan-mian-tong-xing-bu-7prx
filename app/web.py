@@ -25,9 +25,11 @@ def desk(chapter='coverage'):
         raise TideError('NO_STAGE', '找不到潮窗模块', 404)
     sample = request.args.get('sample', 'dirty')
     key = request.args.get('run')
+    intake = request.args.get('intake')
     if key or chapter in ('journal', 'proof'):
         key = key or record(journal(), load_sources({'sample': sample}))['run_id']
-        receipt, sources, reports = journal().get(key)
+        receipt, sources, reports = journal().get(key, intake)
+        intake = receipt.get('intake_id')
     else:
         sources = load_sources({'sample': sample})
         reports = calculate(sources)
@@ -37,7 +39,8 @@ def desk(chapter='coverage'):
         raise TideError('NO_VESSEL', '找不到该船期', 404)
     proof = issue(receipt, sources, reports) if chapter == 'proof' else None
     return render_template('base.html', chapter=chapter, chapters=CHAPTERS, states=STATES, sample=sample,
-                           receipt=receipt, key=key, reports=reports, vessel=vessel, reason=REASONS,
+                           receipt=receipt, key=key, intake=intake, reports=reports, vessel=vessel, reason=REASONS,
                            gauge_fill=min(100, float(Fraction(reports['windows'][vessel]['order']['threshold_m'])) * 25),
                            seal=proof['seal_sha256'] if proof else None, time=instant, rule=RULES,
+                           filings=journal().intakes(key) if chapter == 'journal' else [],
                            history=journal().list() if chapter == 'journal' else [])

@@ -13,12 +13,18 @@ def journal():
     return current_app.extensions['tide_journal']
 
 
+def selected_intake():
+    payload = request.get_json(silent=True)
+    intake = payload.get('intake') if isinstance(payload, dict) else None
+    return intake or request.args.get('intake')
+
+
 @api.route('/stage/<stage>', methods=['GET', 'POST'])
 def stage_result(stage):
     if stage not in STEPS:
         raise TideError('NO_STAGE', '找不到潮窗模块', 404)
     if 'run' in request.args and request.method == 'GET':
-        _, _, reports = journal().get(request.args['run'])
+        _, _, reports = journal().get(request.args['run'], request.args.get('intake'))
     else:
         payload = request.get_json(silent=True) if request.method == 'POST' else {'sample': request.args.get('sample', 'dirty')}
         reports = calculate(load_sources(payload), stage)
@@ -38,18 +44,20 @@ def publish_journal():
 
 @api.get('/journal/<key>')
 def inspect_journal(key):
-    receipt, _, reports = journal().get(key)
-    return jsonify(run_id=key, manifest=receipt, coverage=reports['coverage'])
+    receipt, _, reports = journal().get(key, request.args.get('intake'))
+    filings = [dict(intake_id=row['intake_id'], received=row['started_at'], inputs=row['inputs'])
+               for row in journal().intakes(key)]
+    return jsonify(run_id=key, manifest=receipt, intakes=filings, coverage=reports['coverage'])
 
 
 @api.post('/journal/<key>/rerun')
 def repeat_journal(key):
-    manifest, sources, _ = journal().get(key)
+    manifest, sources, _ = journal().get(key, selected_intake())
     return jsonify(record(journal(), sources, manifest))
 
 
 @api.get('/export/<key>')
 def download(key):
-    response = jsonify(issue(*journal().get(key)))
+    response = jsonify(issue(*journal().get(key, request.args.get('intake'))))
     response.headers['Content-Disposition'] = f'attachment; filename="tide-{key[:12]}.json"'
     return response

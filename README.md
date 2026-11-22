@@ -19,4 +19,6 @@ docker compose up --build
 
 `GET /api/stage/{readings,datum,crossings,windows,coverage}` 可查看样例阶段结果。对同路径执行 POST 可提交 `{"sources":{"observations":"...","stations":"...","vessels":"..."}}`。`POST /api/journal` 接受同一输入或 `{"sample":"dirty"}`。`GET /api/journal/<id>` 查归档，`POST /api/journal/<id>/rerun` 复算，`GET /api/export/<id>` 下载证据。
 
+留档按采信读数内容立簿：潮尺表多一行表头、多个空行或行号错位都归同一簿，不重复计批。每份原件各留一条实收（原件指纹、接收时间、逐行行号），重投同一原件不新增留档，读数一改即另立新簿。复算与下载以选中的实收为准：`GET /api/journal/<id>?intake=<实收号>` 查该实收，`POST /api/journal/<id>/rerun` 可提交 `{"intake":"<实收号>"}`，`GET /api/export/<id>?intake=<实收号>` 下载该实收证据；缺省取本簿首份实收。
+
 字段见 [数据字典](docs/DATA-DICTIONARY.md)，规则与回归见 [深度登记](docs/DEPTH.md)。本机运行 `python -m pytest -q`。

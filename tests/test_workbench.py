@@ -15,3 +15,9 @@ def test_clean_scope(client):
 def test_source_error(client):
     response=client.get('/api/stage/windows?sample=missing')
     assert (response.status_code,response.json['code']) == (404,'NO_SAMPLE')
+
+
+def test_journal_attribution(client):
+    client.post('/api/journal',json={'sample':'dirty'})
+    page=client.get('/desk/journal').get_data(as_text=True)
+    assert '归到同一簿' in page and '本簿实收' in page and '重投同一原件不新增留档' in page
